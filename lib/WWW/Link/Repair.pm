@@ -1,4 +1,5 @@
 package WWW::Link::Repair;
+$REVISION=q$Revision: 1.11 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -30,8 +31,13 @@ This module provides functions that allow the repair of files.
 
 =cut
 
-$WWW::Link::Repair::fakeit = 0;
-$WWW::Link::Repair::verbose = 0;
+our ($fakeit);
+our ($verbose);
+our ($no_warn);
+
+$fakeit = 0 unless defined $fakeit;
+$verbose = 0 unless defined $verbose;
+$no_warn = 0 unless defined $no_warn;
 
 use File::Copy;
 use Carp;
@@ -56,8 +62,12 @@ link for all links which begin with the first link.
 
 sub directory {
   my $handler=shift;
-  my $sub = sub {-d && return 0; &$handler($File::Find::name)};
+  our ($fixed);
+  local $fixed;
+  $fixed=0;
+  my $sub = sub {-d && return 0; $fixed += &$handler($File::Find::name)};
   File::Find::find($sub, @_);
+  return $fixed;
 }
 
 =head2 infostructure(index object, file handler, oldurl, as_directory)
@@ -81,154 +91,170 @@ link for all links which begin with the first link.
 
 use vars qw($infostrucbase $filebase);
 
-sub infostructure ($$$;$) {
-  my ($index, $file_handler, $oldurl, $as_directory)=@_;
-  my $editlist=$index->lookup_second($oldurl);
-  unless ($editlist) {
-    warn "There were no files with that link to edit.\n";
-
-    #FIXME.. 
-
-    #we need some way of entering the index just before a given
-    #key.. this means either starting at the beginning or putting
-    #convenient jump in points, such as host names, in the
-    #index.. e.g. if we have http://joe.bloggs/this/that.html then we
-    #guarantee that http://joe.bloggs/ will be there with an empty
-    #value..  That means changing all other iterators etc.
-
-    warn "..and due to a bug I will have missed your sub-links.. sorry\n"
-      if $as_directory;
-    return 0;
-  }
-
-  my $member;
-  foreach $member (@$editlist) {
+sub _link_fix($$$) {
+  my $url_to_file=shift;
+  my $file_handler=shift;
+  my $editlist=shift;
+  my $fixed=0;
+ PAGE: foreach my $member (@$editlist) {
     print STDERR "going to convert $member to file\n"
-	if $WWW::Link::Repair::verbose & 32;
-    my $file = map_url_to_editable($member);
+      if $WWW::Link::Repair::verbose & 32;
+    my $file = &$url_to_file($member);
+    defined $file or do {
+      print STDERR "No filename for $member.  Skipping\n";
+      next PAGE;
+    };
     print STDERR "file is $file\n" if $WWW::Link::Repair::verbose & 32;
-    &$file_handler($file);
+    $fixed+=&$file_handler($file);
   }
+  return $fixed;
+}
 
-  $index->second_set_iterate($oldurl);
 
-  if ($as_directory) { #we should substitute all links below this
-    my $key;
-    while ($key = $index->second_next()) {
-      last unless $key =~ m/^$oldurl/;
-      my $editlist=$index->lookup_second($key);
-      my $member;
-      foreach $member (@$editlist) {
-	print STDERR "going to convert $member to file\n"
-	    if $WWW::Link::Repair::verbose & 32;
-	my $file = map_url_to_editable($member);
-	print STDERR "file is $file\n" if $WWW::Link::Repair::verbose & 32;
-	&$file_handler($file);
+sub infostructure ($$$$;$) {
+  my ($oldurl, $index, $url_to_file, $file_handler, $recursive, $junk)=@_;
+
+  defined $file_handler or 
+    croak "missing argument to infostructure(\$\$\$\$;\$)";
+  $oldurl =~ m/^[a-z][a-z0-9-]*:/ or
+    croak "first argument to infostructure() must be a url not $oldurl";
+  ref $index and $index->can("lookup_second") or
+    croak "second argument to infostructure() must be a biindex not $index";
+  (ref $url_to_file) =~ m/CODE/ or
+    croak "third argument to infostructure() must be a CODE ref not $url_to_file";
+  (ref $file_handler) =~ m/CODE/ or
+    croak "fourth argument to infostructure() must be a CODE ref not $url_to_file";
+  defined $junk and croak "extra argument to infostructure(\$\$\$\$;\$)";
+
+  my $key=$index->second_set_iterate($oldurl);
+  my $fixed=0;
+
+  if (defined $key) {
+    if ($recursive) {		#we should substitute all links below this
+      while (defined $key and $key =~ m/^$oldurl/) {
+	my $editlist=$index->lookup_second($key);
+	$fixed += _link_fix($url_to_file,$file_handler,$editlist);
+	$key = $index->second_next();
       }
+    } else {			#just warn if there are any links below this.
+      my $next;
+      if ( $key =~ m/^$oldurl/ and not $key eq $oldurl ) {
+	warn "There were no files with exactly that link to edit.\n";
+	last;
+      } else {
+	my $editlist=$index->lookup_second($oldurl);
+	$fixed += _link_fix($url_to_file,$file_handler,$editlist);
+	$key=$index->second_next();
+      }
+      warn "Ignoring URLs starting with your URL such as $key.\n"
+	if defined $key and $key =~ m/^$oldurl/;
     }
-  } else { #just warn if there are any links below this.
-    my $next=$index->second_next();
-    warn "Ignoring some other URLs which start with your URL.\n"
-      if $next && $next =~ m/^$oldurl/;
+  } else {
+    warn "There were no files with exactly that link to edit.\n";
+    print STDERR "key was beyond all keys in index\n"
+      if $WWW::Link::Repair::verbose & 16;
   }
+
+  $fixed or carp "didn't make any substitutions for $oldurl" unless $no_warn;
   #FIXME repair the infostructure index..
+  return $fixed;
 }
 
-=head2 map_url_to_editable
+#  =head2 map_url_to_editable
 
-Given any url, get us something we can edit in order to change the
-resource referenced by that url.  Or not, if we can't.  In the case
-that we can't, return undef.
+#  Given any url, get us something we can edit in order to change the
+#  resource referenced by that url.  Or not, if we can't.  In the case
+#  that we can't, return undef.
 
-The aim of this function is to return something which is not tainted.
+#  The aim of this function is to return something which is not tainted.
 
-N.B.  This will accept any filename which is within the infostructure
-whatsoever.. it is possible that that includes more than you wish to
-let people edit.
+#  N.B.  This will accept any filename which is within the infostructure
+#  whatsoever.. it is possible that that includes more than you wish to
+#  let people edit.
 
-For this function to work the two variables:
+#  For this function to work the two variables:
 
-  $WWW::Link::Repair::filebase
-  $WWW::Link::Repair::infostrucbase
+#    $WWW::Link::Repair::filebase
+#    $WWW::Link::Repair::infostrucbase
 
-must be defined appropriately
+#  must be defined appropriately
 
-=cut
+#  =cut
 
-# sub{}
+#  # sub{}
 
-# @conversions = [
-#   { regexp => 'http:://stuff..../'
-#     changeurlfunc => sub {
+#  # @conversions = [
+#  #   { regexp => 'http:://stuff..../'
+#  #     changeurlfunc => sub {
 
-#     }
+#  #     }
 
-# ]
+#  # ]
 
-sub map_url_to_editable ($) {
-  my $save=$_;
-  $_=shift;
-  print STDERR "trying to map $_ to editable object\n"
-    if $WWW::Link::Repair::verbose & 64;
+#  sub map_url_to_editable ($) {
+#    my $save=$_;
+#    $_=shift;
+#    print STDERR "trying to map $_ to editable object\n"
+#      if $WWW::Link::Repair::verbose & 64;
 
-  unless (m/^$infostrucbase/) {
-    my $print=$_;
-    $_=$save;
-    croak "can't deal with url '$print' not in our infostructure"; #taint??
-  }
-  die 'config variable $WWW::Link::Repair::infostrucbase must be defined' 
-    unless defined $infostrucbase;
-  s/^$infostrucbase//;
+#    unless (m/^$infostrucbase/) {
+#      my $print=$_;
+#      $_=$save;
+#      croak "can't deal with url '$print' not in our infostructure"; #taint??
+#    }
+#    die 'config variable $WWW::Link::Repair::infostrucbase must be defined'
+#      unless defined $infostrucbase;
+#    s/^$infostrucbase//;
 
-  # Now we clean up the filename.  For This we assume unix semantics.
-  # These have been around for long enough that any sensible operating
-  # system could have simply copied them.
+#    # Now we clean up the filename.  For This we assume unix semantics.
+#    # These have been around for long enough that any sensible operating
+#    # system could have simply copied them.
 
-  s,/./,,g;
+#    s,/./,,g;
 
-  #now chop away down references..
+#    #now chop away down references..
 
-  # substitute a downchange (dirname/) followed by an upchange ( /../ )
-  # for nothing.
-  1 while s,([^.]|(.[^.])|(..?))/+..($|/),,g ;
+#    # substitute a downchange (dirname/) followed by an upchange ( /../ )
+#    # for nothing.
+#    1 while s,([^.]|(.[^.])|(..?))/+..($|/),,g ;
 
-  # clean up multiple slashes
+#    # clean up multiple slashes
 
-  s,//,/,g;
+#    s,//,/,g;
 
-  # delete leading slash
+#    # delete leading slash
 
-  s,^/,,g;
+#    s,^/,,g;
 
 
-  if (m,(^|/)..($|/),) {
-    $_=$save;
-    croak "upreferences (/../) put that outside our infostructure";
-  }
+#    if (m,(^|/)..($|/),) {
+#      $_=$save;
+#      croak "upreferences (/../) put that outside our infostructure";
+#    }
 
-  #what are the properties of the filename we can return..
-  #any string which doesn't contain /.. (and refuse /.
+#    #what are the properties of the filename we can return..
+#    #any string which doesn't contain /.. (and refuse /.
 
-  #now we untaint and do a check..
+#    #now we untaint and do a check..
 
-  $_ =~ m,( (?:             # directory name; xxx/ or filename; xxx
-	         (?:                # some filename ....
-	           (?:[^./][^/]+)              #a filename with no dot
-	          |(?:.[^./][^/]+)             #a filename starting with .
-	          |(?:..[^./][^/]+)            #a filename starting with .. why bother?
-	         )
-	         (?:/|$)           # seperator to next directory name or end of filename
-	      ) +
-	    ),x; #we set $1 to the whole qualified filename.
+#    $_ =~ m,( (?:             # directory name; xxx/ or filename; xxx
+#  	         (?:                # some filename ....
+#  	           (?:[^./][^/]+)              #a filename with no dot
+#  	          |(?:.[^./][^/]+)             #a filename starting with .
+#  	          |(?:..[^./][^/]+)            #a filename starting with .. why bother?
+#  	         )
+#  	         (?:/|$)           # seperator to next directory name or end of filename
+#  	      ) +
+#  	    ),x; #we set $1 to the whole qualified filename.
 
-  my $fixable = $1;
-  $_=$save;
-  return undef unless defined $fixable;
-  die 'config variable $WWW::Link::Repair::filebase must be defined'
-    unless defined $filebase;
-  #FIXME: filebase can contain a / so this can end up with //. do we care?
-  return $filebase . '/' . $fixable; #filebase should be an internal variable
-}
+#    my $fixable = $1;
+#    $_=$save;
+#    return undef unless defined $fixable;
+#    die 'config variable $WWW::Link::Repair::filebase must be defined'
+#      unless defined $filebase;
+#    #FIXME: filebase can contain a / so this can end up with //. do we care?
+#    return $filebase . '/' . $fixable; #filebase should be an internal variable
+#  }
 
 
 =head1 check_url_is_full

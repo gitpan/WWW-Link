@@ -1,4 +1,5 @@
 package WWW::Link::Tester::Complex;
+$REVISION=q$Revision: 1.7 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 

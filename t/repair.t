@@ -11,7 +11,8 @@ use WWW::Link::Repair::Substitutor;
 
 #$::verbose=0xFF;
 #$::verbose=32;
-$::verbose=0;
+$::verbose=0 unless defined $::verbose;
+$WWW::Link::Repair::Substitutor::verbose=0xFFF if $::verbose;
 
 $loaded = 1;
 
@@ -39,13 +40,9 @@ open(TESTFILE, ">$tfile");
 print TESTFILE $text;
 close TESTFILE;
 
-$linksubs1 = WWW::Link::Repair::Substitutor::gen_substitutor(
-   "http://bounce.com/" ,
-   "http://bing.bong/",
-   0, 0,
-  );
+$filehand1 = WWW::Link::Repair::Substitutor::gen_file_substitutor
+  ( "http://bounce.com/" , "http://bing.bong/");
 
-$filehand1 = WWW::Link::Repair::Substitutor::gen_simple_file_handler ($linksubs1);
 
 &$filehand1("$tfile");
 open(TESTFILE, "$tfile");
@@ -59,6 +56,14 @@ $returntext eq $targettext or nogo;
 ok(1);
 
 package myindex;
+
+=head1 DESCRIPTION
+
+This provides the minimum functions needed for the index used in
+repair below.
+
+=cut
+
 use vars qw($next %store);
 
 sub new {return bless {}, "myindex"}
@@ -87,7 +92,16 @@ sub lookup_second {
 sub second_set_iterate {
   $next=undef;
   $_[1] eq "http://www.tardis.ed.ac.uk/~mikedlr/"
-    and $next="http://www.tardis.ed.ac.uk/~mikedlr/climbing/";
+    and do { 
+	$next="http://www.tardis.ed.ac.uk/~mikedlr/climbing/";
+	return "http://www.tardis.ed.ac.uk/~mikedlr/";
+    };
+  $_[1] eq "http://www.rum.com/"
+    and do { 
+	$next="http://www.tardis.ed.ac.uk/~mikedlr/";
+	return "http://www.rum.com/";
+    };
+  return undef;
 }
 
 sub second_next {my $this=$next; $next=undef; return $this};
@@ -98,29 +112,26 @@ my $index=new myindex;
 
 $oldurl="http://www.rum.com/";
 $newurl="http://www.malibu.com/";
-$linksubs2=WWW::Link::Repair::Substitutor::gen_substitutor
-  (
-   $oldurl,
-   $newurl,
-   0, 0,
-  );
 
-$filehand2 = WWW::Link::Repair::Substitutor::gen_simple_file_handler ($linksubs2);
+$filehand2 = WWW::Link::Repair::Substitutor::gen_file_substitutor
+  ( $oldurl, $newurl,);
 
 #we want to test infostructure functionality
 
 system 'rm', '-rf', 'work-infostruc';
 
+-e 'work-infostruc' and die "couldn't delete work-infostruc";
+
 system 'cp', '-rp', 'sample-infostruc', 'work-infostruc';
 
 
 #FIXME.. we should probably reject non-absolute paths.. but what the heck
-$WWW::Link::Repair::filebase = "./work-infostruc/";
-$WWW::Link::Repair::infostrucbase = "http://www.fake.com/";
+my $filebase = "./work-infostruc/";
+my $infostrucbase = "http://www\.fake\.com/";
 
+my $sub=sub { my $url=shift; $url =~ s/$infostrucbase/$filebase/; return $url; };
 
-WWW::Link::Repair::infostructure($index, $filehand2, $oldurl);
-
+WWW::Link::Repair::infostructure($oldurl, $index, $sub, $filehand2, );
 
 $firstdiff = `diff -r  sample-infostruc work-infostruc`;
 
@@ -129,23 +140,19 @@ $firstdiff =~ m($oldurl.*
 	     )xs or nogo;
 ok(2);
 
-$linksubs3=WWW::Link::Repair::Substitutor::gen_substitutor
-  (
-   $oldurl,
-   $newurl,
-   1, 0,
-  );
+$filehand3 = WWW::Link::Repair::Substitutor::gen_file_substitutor
+  ( $oldurl, $newurl, tree_mode => 1);
 
-$filehand3 = WWW::Link::Repair::Substitutor::gen_simple_file_handler ($linksubs3);
-
-#now check that a directory substitution does the same as a normal one
+#now check that a recursive substitution does the same as a normal one
 #in the case where there are other links
 
 system 'rm', '-rf', 'work-infostruc';
 
+-e 'work-infostruc' and die "couldn't delete work-infostruc";
+
 system 'cp', '-rp', 'sample-infostruc', 'work-infostruc';
 
-WWW::Link::Repair::infostructure($index, $filehand3, $oldurl, 1);
+WWW::Link::Repair::infostructure($oldurl, $index, $sub, $filehand3, 1);
 
 $seconddiff = `diff -r  sample-infostruc work-infostruc`;
 
@@ -156,24 +163,19 @@ ok(3);
 $oldurl="http://www.tardis.ed.ac.uk/~mikedlr/";
 $newurl="http://www.mikedlr.org/~mikedlr/";
 
-$linksubs4=WWW::Link::Repair::Substitutor::gen_substitutor
-  (
-   $oldurl,
-   $newurl,
-   1, 0,
-  );
-
-
-$filehand4 = WWW::Link::Repair::Substitutor::gen_simple_file_handler ($linksubs4);
+$filehand4 = WWW::Link::Repair::Substitutor::gen_file_substitutor
+  ( $oldurl, $newurl, tree_mode => 1);
 
 
 #now check directory substitution proper
 
 system 'rm', '-rf', 'work-infostruc';
 
+-e 'work-infostruc' and die "couldn't delete work-infostruc";
+
 system 'cp', '-rp', 'sample-infostruc', 'work-infostruc';
 
-WWW::Link::Repair::infostructure($index, $filehand4, $oldurl, 1);
+WWW::Link::Repair::infostructure($oldurl, $index, $sub, $filehand4,  1);
 
 $thirddiff = `diff -r  sample-infostruc work-infostruc`;
 
@@ -192,5 +194,7 @@ ok(4);
 
 
 system 'rm', '-rf', 'work-infostruc';
+
+-e 'work-infostruc' and die "couldn't delete work-infostruc";
 
 

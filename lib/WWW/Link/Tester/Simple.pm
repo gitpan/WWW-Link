@@ -1,4 +1,5 @@
 package WWW::Link::Tester::Simple;
+$REVISION=q$Revision: 1.9 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -54,6 +55,8 @@ sub get_response {
   my $url=$link->url();
   my $supported;
 
+  my $verbose=$self->{"verbose"};
+
   my $urlo=new URI($url);
   my $proto=$urlo->scheme();
 
@@ -75,9 +78,9 @@ sub get_response {
 
   my $request=new HTTP::Request ('HEAD',$url);
 
-  print STDERR "sending request\n";
+  print STDERR "sending request\n" if $verbose;
   my $response=$user_agent->simple_request($request);
-  print STDERR "got response\n";
+  print STDERR "got response\n" if $verbose;
   #warn on client error
 
   if ($self->{warn_access}) { # warn about links where we can't access it
@@ -94,7 +97,7 @@ sub get_response {
 				    MSG_REDIRECT_LIMIT_EXCEEDED);
       last REDIRECT;
     };
-    print STDERR "have a redirect: " . $loc . "\n";
+    print STDERR "have a redirect: " . $loc . "\n" if $verbose;
 
     push @redirects, $response;
 

@@ -43,7 +43,7 @@ foreach my $class (@reporters) {
   my $reporter=new $class ;
   my $link=new WWW::Link "http://www.bounce.com/";
 
-  print STDERR "test $testno testing reporter: $class\n";
+  print STDERR " test $testno testing reporter: $class\n";
 
   $i=10;
   $link->failed_test while $i--;
@@ -122,6 +122,7 @@ foreach my $class (@reporters) {
 sub try_report ($$){
   my ($reporter,$link)=@_;
   open ( SAVEOUT, ">&STDOUT" ) || die "couldn't duplicate stdout";
+  print SAVEOUT ""; #silence perl warning that SAVEOUT is only used once
   open ( STDOUT, "> $tempfile" ) || die "couldn't open tempfile to write";
 
   $reporter->examine($link);

@@ -2,8 +2,9 @@
 
 =head1 fix-old-db
 
-fix up databases generated with the old version of the link module not
-much use to you because that version wasn't distributed.
+A little script designed to fix up old LinkController databases
+generated with the old version of the link module not much use to you
+because that version wasn't distributed.
 
 =cut
 

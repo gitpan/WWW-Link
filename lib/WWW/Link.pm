@@ -22,10 +22,11 @@ into something which can be used by humans.
 =cut
 
 package WWW::Link;
+$REVISION=q$Revision: 1.17 $ ;
+$VERSION = '0.030'; #BETA / under development
 use Carp;
 use strict;
 use vars qw($verbose $VERSION);
-$VERSION = '0.024'; #BETA / under development
 $verbose=0;
 use HTTP::Response;
 

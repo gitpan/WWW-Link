@@ -16,7 +16,7 @@ In order to test the testers, we write our own fake user agent..
 
 our $loaded;
 
-BEGIN {print "1..42\n"}
+BEGIN {print "1..66\n"}
 END {print "not ok 1\n" unless $loaded;}
 
 use warnings;
@@ -112,7 +112,8 @@ $loaded=1;
 use vars qw($simplet $complext $adaptivet);
 
 our ($working_link,  $broken_link,  $redirected_link, $infinite_link,
-    $robot_blocked_link, $unsupported_link, $ua);
+     $robot_blocked_link, $unsupported_link, $mailto_link, $news_link,
+     $ua);
 
 $working_link = new WWW::Link "http://www.okay.com";
 $broken_link = new WWW::Link "http://www.broken.com";
@@ -120,6 +121,8 @@ $redirected_link=new WWW::Link "http://www.redirected.com";
 $infinite_link=new WWW::Link "http://www.indefinite.com";
 $robot_blocked_link=new WWW::Link "http://www.paranoid.com/deepwithin.html";
 $unsupported_link=new WWW::Link "whoop:wozzisprogogoglisnoideawozzoever";
+$mailto_link=new WWW::Link "mailto:test\@example.com";
+$news_link=new WWW::Link "news:uk.rec.climbing";
 
 $ua=new LWP::FakeAgent;
 
@@ -155,6 +158,22 @@ nogo if ($robot_blocked_link->is_okay());
 ok(13);
 nogo if ($robot_blocked_link->is_broken());
 ok(14);
+$simplet->test_link($mailto_link);
+ok(15);
+nogo unless ($mailto_link->is_unsupported());
+ok(16);
+nogo if ($mailto_link->is_broken());
+ok(17);
+nogo if ($mailto_link->is_okay());
+ok(18);
+$simplet->test_link($news_link);
+ok(19);
+nogo unless ($news_link->is_unsupported());
+ok(20);
+nogo if ($news_link->is_broken());
+ok(21);
+nogo if ($news_link->is_okay());
+ok(22);
 
 $working_link = new WWW::Link "http://www.okay.com";
 $broken_link = new WWW::Link "http://www.broken.com";
@@ -162,41 +181,59 @@ $redirected_link=new WWW::Link "http://www.redirected.com";
 $infinite_link=new WWW::Link "http://www.indefinite.com";
 $robot_blocked_link=new WWW::Link "http://www.paranoid.com/deep/within.html";
 $unsupported_link=new WWW::Link "whoop:wozzisprogogoglisnoideawozzoever";
+$mailto_link=new WWW::Link "mailto:test\@example.com";
+$news_link=new WWW::Link "news:uk.rec.climbing";
 
 $complext=new WWW::Link::Tester::Complex $ua;
 
 $complext->test_link($working_link);
-ok(15);
+ok(23);
 nogo unless ($working_link->is_okay());
-ok(16);
+ok(24);
 $complext->test_link($broken_link);
 nogo if ($broken_link->is_okay());
-ok(17);
+ok(25);
 $complext->test_link($redirected_link);
-ok(18);
+ok(26);
 nogo unless ($redirected_link->is_okay());
-ok(19);
+ok(27);
 nogo unless ($redirected_link->is_redirected());
-ok(20);
+ok(28);
 $complext->test_link($infinite_link);
 nogo if ($infinite_link->is_okay());
-ok(21);
+ok(29);
 nogo if ($infinite_link->is_okay());
-ok(22);
+ok(30);
 $simplet->test_link($unsupported_link);
 nogo unless ($unsupported_link->is_unsupported());
-ok(23);
+ok(31);
 nogo if ($unsupported_link->is_okay());
-ok(24);
+ok(32);
 nogo if ($unsupported_link->is_broken());
-ok(25);
+ok(33);
 $simplet->test_link($robot_blocked_link);
 nogo unless ($robot_blocked_link->is_disallowed());
-ok(26);
+ok(34);
 nogo if ($robot_blocked_link->is_okay());
-ok(27);
+ok(35);
 nogo if ($robot_blocked_link->is_broken());
-ok(28);
+ok(36);
+$simplet->test_link($mailto_link);
+ok(37);
+nogo unless ($mailto_link->is_unsupported());
+ok(38);
+nogo if ($mailto_link->is_broken());
+ok(39);
+nogo if ($mailto_link->is_okay());
+ok(40);
+$simplet->test_link($news_link);
+ok(41);
+nogo unless ($news_link->is_unsupported());
+ok(42);
+nogo if ($news_link->is_broken());
+ok(43);
+nogo if ($news_link->is_okay());
+ok(44);
 
 $working_link = new WWW::Link "http://www.okay.com";
 $broken_link = new WWW::Link "http://www.broken.com";
@@ -204,39 +241,57 @@ $redirected_link=new WWW::Link "http://www.redirected.com";
 $infinite_link=new WWW::Link "http://www.indefinite.com";
 $robot_blocked_link=new WWW::Link "http://www.paranoid.com/deep/within.html";
 $unsupported_link=new WWW::Link "whoop:wozzisprogogoglisnoideawozzoever";
+$mailto_link=new WWW::Link "mailto:test\@example.com";
+$news_link=new WWW::Link "news:uk.rec.climbing";
 
 $adaptivet=new WWW::Link::Tester::Adaptive $ua;
 
 $adaptivet->test_link($working_link);
-ok(29);
+ok(45);
 nogo unless ($working_link->is_okay());
-ok(30);
+ok(46);
 $adaptivet->test_link($broken_link);
 nogo if ($broken_link->is_okay());
-ok(31);
+ok(47);
 $adaptivet->test_link($redirected_link);
-ok(32);
+ok(48);
 nogo unless ($redirected_link->is_okay());
-ok(33);
+ok(49);
 nogo unless ($redirected_link->is_redirected());
-ok(34);
+ok(50);
 $adaptivet->test_link($infinite_link);
 nogo if ($infinite_link->is_okay());
-ok(35);
+ok(51);
 nogo if ($infinite_link->is_okay());
-ok(36);
+ok(52);
 $simplet->test_link($unsupported_link);
 nogo unless ($unsupported_link->is_unsupported());
-ok(37);
+ok(53);
 nogo if ($unsupported_link->is_okay());
-ok(38);
+ok(54);
 nogo if ($unsupported_link->is_broken());
-ok(39);
+ok(55);
 $simplet->test_link($robot_blocked_link);
 nogo unless ($robot_blocked_link->is_disallowed());
-ok(40);
+ok(56);
 nogo if ($robot_blocked_link->is_okay());
-ok(41);
+ok(57);
 nogo if ($robot_blocked_link->is_broken());
-ok(42);
+ok(58);
+$simplet->test_link($mailto_link);
+ok(59);
+nogo unless ($mailto_link->is_unsupported());
+ok(60);
+nogo if ($mailto_link->is_broken());
+ok(61);
+nogo if ($mailto_link->is_okay());
+ok(62);
+$simplet->test_link($news_link);
+ok(63);
+nogo unless ($news_link->is_unsupported());
+ok(64);
+nogo if ($news_link->is_broken());
+ok(65);
+nogo if ($news_link->is_okay());
+ok(66);
 

@@ -35,13 +35,15 @@ an index to get the information.
 =cut
 
 package WWW::Link::Selector;
+$REVISION=q$Revision: 1.9 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 use strict;
 use Carp qw(croak carp cluck);
 
 $WWW::Link::Selector::ignore_missing = 0;
 
 #$WWW::Link::Selector::verbose = 0xFF;
-$WWW::Link::Selector::verbose = 0x00;
+$WWW::Link::Selector::verbose = 0x00
+  unless defined $WWW::Link::Selector::verbose;
 
 =head1 generate_url_func
 
@@ -109,7 +111,7 @@ sub generate_select_func ($$$;$) {
 
       my $url;
       $index->second_reset();
-    URL: while($url=$index->second_iterate()) {
+    URL: while($url=$index->second_next()) {
 	my $link=$link_database->{$url};
 	print STDERR "WWW::Link::Selector::[generated selector] Looking"
 	  . " at link $url.\n"
@@ -144,7 +146,7 @@ sub generate_select_func ($$$;$) {
 	  #FIXME: we really don't want this, but rather want to accept
 	  #some iterator functionwhich returns only links as an argument.
 	  warn "Non reference $link found in database for url $url.\n"
-	    unless $link =~ m/^\%\+\+/;
+	    unless $url =~ m/^\%\+\+/;
 	  next;
 	};
 	print STDERR "Looking at link $url.\n"
@@ -172,7 +174,7 @@ sub generate_index_select_func ($$$$) {
   return sub {
     my $url;
     $index->second_reset();
-  URL: while($url=$index->second_iterate()) {
+  URL: while($url=$index->second_next()) {
       my $pagelist=$index->lookup_second($url);
 
       my $include=0;

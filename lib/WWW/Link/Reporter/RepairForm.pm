@@ -1,4 +1,5 @@
 package WWW::Link::Reporter::RepairForm;
+$REVISION=q$Revision: 1.6 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 

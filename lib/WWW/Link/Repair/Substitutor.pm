@@ -1,4 +1,5 @@
 package WWW::Link::Repair::Substitutor;
+$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -21,7 +22,7 @@ This link repairer works by going through a file line by line and
 doing a substitute on each line.  It will substitute absolute links
 all of the time, including within the text of the HTML page.  This is
 useful because it means that things like instructions to people about
-what to do with URLS will be corrected.
+what to do with URLs will be corrected.
 
 =head1 SUBSTITUTORS
 
@@ -44,8 +45,16 @@ B<Warning>: I think the logic around here is more than a little dubious
 use Carp;
 use File::Copy;
 use strict;
+use URI;
+
+our ($verbose);
+$verbose=0 unless defined $verbose;
 
 =head2 gen_substitutor
+
+This function was previously an exported interface and currently
+remains visible.  I think it's interface is likely to change though.
+Preferably use generate_file_substitutor as an entry point instead.
 
 This function generates a function which can be called either on a
 complete line of text from a file or on a URL and which will update
@@ -72,28 +81,39 @@ to
 
 =cut
 
-sub gen_substitutor ($$$$) {
-  my ($original_url,$new_url,$tree_mode,$relative) = @_;
+sub gen_substitutor ($$;$$) {
+  my ($original_url,$new_url,$tree_mode,$baseuri) = @_;
 
-  print STDERR "Generating substitutor from ", $original_url,
-    " to ", $new_url, "\n" if ($::verbose & 32);
+  print STDERR
+    "Generating substitutor from $original_url to $new_url \n",
+    (defined $baseuri ? "using base $baseuri\n" : "" ) if ($verbose & 32);
 
+  defined $baseuri and ( not $baseuri =~ m/^[a-z][a-z0-9]*:/ )
+    and croak "baseuri must be absolute URI, not $baseuri";
+
+  my $orig_rel;
+  my $new_rel;
+  defined $baseuri and do {
+    my $orig_uri=URI->new($original_url);
+    my $new_uri=URI->new($new_url);
+    $orig_rel=$orig_uri->rel($baseuri);
+    $new_rel=$new_uri->rel($baseuri);
+  };
 
   my $perlcode = <<'EOF';
     sub {
+      my $substitutions=0;
 EOF
 
-  $perlcode .= <<'EOF' if ($::verbose & 16);
+  $perlcode .= <<'EOF' if ($verbose & 16);
       print STDERR "Subs in : $_[0]\n";
 EOF
 
-  $perlcode .= <<'EOF' if ($relative);
-      my $orig_rel=$orig_uri->rel($WWW::Link::Repair::baseurl);
-      my $new_rel=$new_uri->rel($WWW::Link::Repair::baseurl);
+  $perlcode .= <<'EOF' if ($baseuri);
 EOF
 
   my $restart = <<'EOF';
-      $_[0] =~ s,( (?:^) #the start of a line
+      $substitutions += $_[0] =~ s,( (?:^) #the start of a line
                   |(?:[^A-Za-z0-9]) #or a boundary character..
 	         )
 EOF
@@ -143,287 +163,72 @@ EOF
   #FIXME: url quoting into regex??
 
   $perlcode .= $restart . $original_url . $remiddle . $new_url . $reend;
-  if ($relative) {
-    $perlcode .= $restart . '$orig_rel' . $remiddle . '$new_rel' . $relreend;
+  if ($baseuri) {
+    $perlcode .= $restart . "$orig_rel" . $remiddle . "$new_rel" . $relreend;
   }
 
-  $perlcode .= <<'EOF' if ($::verbose & 16);
+  $perlcode .= <<'EOF' if ($verbose & 16);
       print STDERR "Gives : $_[0]\n";
 EOF
 
   $perlcode .= <<'EOF';
+      return $substitutions;
     }
 EOF
   print STDERR "creating substitutor function as follows\n",$perlcode, "\n"
-    if ($::verbose & 32);
+    if ($verbose & 32);
   my $returnme=(eval $perlcode);
   if ($@) {
+    chomp $@; # to get line no in message
     die "sub creation failed: $@";
   }
   return $returnme;
 }
 
-
-#  sub gen_substitutor ($$$$) {
-#    my ($original_url,$new_url,$tree_mode,$relative) = @_;
-#    if ($relative) {
-#      if ($tree_mode) {
-#        return gen_rel_directory_substitutor($original_url, $new_url);
-#      } else {
-#        return gen_rel_link_substitutor($original_url, $new_url);
-#      }
-#    } else {
-#      if ($tree_mode) {
-#        return gen_directory_substitutor($original_url, $new_url);
-#      } else {
-#        return gen_link_substitutor($original_url, $new_url);
-#      }
-#    }
-#  }
-
-#  sub gen_directory_substitutor ($$) { #original URL, change to URL
-#    my ($original_url,$new_url) = @_;
-#    croak "gen_directory_substitutor called  with undefined value"
-#      unless defined $new_url && defined $original_url;
-#    #my $base = shift #???????
-#    croak "Orig. and new URL mismatch.  Both or neither should end `/'"
-#      unless (  ($original_url =~ m,/$,) == ($new_url =~ m,/$,)   );
-
-#    $original_url=~ m,/$, and
-#      return eval '
-#        sub {
-#  	#print STDERR "substituted at line $.\n" 
-#  	#  if 
-#  	    $_[0] =~ s,( (?:^)
-#  			 |(?:[^A-Za-z0-9])
-#  		       )
-#  		       $original_url
-#  		       ,$1$new_url,gxo;
-#        }
-#      ';
-#    return eval '
-#      sub {
-#        #print STDERR "substituted at line $.\n" 
-#        #  if 
-#  	  $_[0] =~ s,( (?:^)
-#  		       |(?:[^A-Za-z0-9])
-#  		     )
-#  		     $original_url
-#  		     (?=( (["' . "'" . '/>]) #"
-#  			 |(\s)
-#  			 |($)
-#  			)
-#  		     ),$1$new_url,gxo;
-#      }
-#    ';
-#  }
-
-#  sub gen_link_substitutor ($$) { #original URL, change to URL
-#    my ($original_url,$new_url) = @_;
-#    croak "gen_link_substitutor called  with undefined value"
-#      unless defined $new_url && defined $original_url;
-#    #my $base = shift #???????
-#    return eval {
-#      sub {
-#        #print STDERR "substituted at line $.\n"
-#        #  if 
-#  	  $_[0] =~ s,( (?:^)
-#  		       |(?:[^A-Za-z0-9])
-#  		     )
-#  	             $original_url
-#  		     (?=( (["'>]) #"
-#  	                 |(\s)
-#  	                 |($)
-#  	                )
-#                       ),$1$new_url,gx;
-#      }
-#    }
-#  }
-
-#  =head2 relative substitution
-
-#  When we do substitution of relative URLs we have to also know what is
-#  the base url of the current file.  We generate a substitutor like
-#  normal, but this one should be passed in the local variable
-#  $WWW::Link::Repair::baseurl which will then be used to generate a relative
-#  URL for substitution.
-
-#  This substitutor should convert relative URLs to absolute where needed
-#  (the original URL can be relative but the new cannot).  It should not
-#  convert absolute URLs into relative ones.
-
-#  =cut
-
-#          #first do the substitution on absolute URLs.  This should
-#          #mean that there should not be conversion of absolute URLs
-#          #into relative URLs.
-
-#          #FIXME: write some regression tests for this.
-
-#  use URI;
-
-#  sub gen_rel_directory_substitutor ($$) { #original URL, change to URL
-#    my ($original_url,$new_url) = @_;
-#    my $orig_uri=new URI ( $original_url);
-#    my $new_uri=new URI ( $new_url);
-#    croak "gen_directory_substitutor called  with undefined value"
-#      unless defined $new_url && defined $original_url;
-#    #my $base = shift #???????
-#    croak "Orig. and new URL mismatch.  Both or neither should end `/'"
-#      unless (  ($original_url =~ m,/$,) == ($new_url =~ m,/$,)   );
-
-#    $original_url=~ m,/$, and
-#      return eval '
-#        sub {
-#          #calculate the relative URLs..
-#          my $orig_rel=$orig_uri->rel($WWW::Link::Repair::baseurl);
-#          my $new_rel=$new_uri->rel($WWW::Link::Repair::baseurl);
-
-#  	    $_[0] =~ s,( (?:^)
-#  			 |(?:[^A-Za-z0-9])
-#  		       )
-#  		       $original_url
-#  		       ,$1$new_url,gxo;
-
-#  	    $_[0] =~ s,( (?:^)
-#  			 |(?:[^A-Za-z0-9])
-#  		       )
-#  		       $orig_rel
-#  		       ,$1$new_rel,gxo;
-
-#        }
-#      ';
-#    return eval '
-#      sub {
-#          #calculate the relative URLs..
-#          my $orig_rel=$orig_uri->rel($WWW::Link::Repair::baseurl);
-#          my $new_rel=$new_uri->rel($WWW::Link::Repair::baseurl);
-
-#  	  $_[0] =~ s,( (?:^)
-#  		       |(?:[^A-Za-z0-9])
-#  		     )
-#  		     $original_url
-#  		     (?=( (["' . "'" . '/>]) #"
-#  			 |(\s)
-#  			 |($)
-#  			)
-#  		     ),$1$new_url,gxo;
-#  	  $_[0] =~ s,( (?:^)
-#  		       |(?:[^A-Za-z0-9])
-#  		     )
-#  		     $orig_rel
-#  		     (?=( (["' . "'" . '/>]) #"
-#  			 |(\s)
-#  			 |($)
-#  			)
-#  		     ),$1$new_rel,gxo;
-#      }
-#    ';
-#  }
-
-#  sub gen_rel_link_substitutor ($$) { #original URL, change to URL
-#    my ($original_url,$new_url) = @_;
-#    croak "gen_link_substitutor called  with undefined value"
-#      unless defined $new_url && defined $original_url;
-#    #my $base = shift #???????
-#    return eval {
-#      sub {
-#        #print STDERR "substituted at line $.\n"
-#        #  if 
-#  	  $_[0] =~ s,( (?:^)
-#  		       |(?:[^A-Za-z0-9])
-#  		     )
-#  	             $original_url
-#  		     (?=( (["'>]) #"
-#  	                 |(\s)
-#  	                 |($)
-#  	                )
-#                       ),$1$new_url,gx;
-#      }
-#    }
-#  }
-
-=head2 gen_file_handler(substitutor, basehash)
+=head2 gen_file_substitutor(<original url>, <new url>, [args...])
 
 This function returns a function which will act on a text file or
-other file which can be treated as a text file and will carry out
+other file which can be treated as a text file and will carry out URL
 substitutions within it.
 
-B<substitutor> a substitutor function which will be called on each
-line of the file and will edit it in place to fix URLs in it.
+The returned code reference should be called with a filename as an
+argument, it will then replace all occurrences of original url with
+new url.
 
-One problem with this system is that relative URLs are sometimes
-possible.  In this case, we can fix these by running a substitution
-which handles these.  In this case, provide a hash where the keys are
-the directory names and the values are the URLs.
+There are various options to this which can be set by putting various
+key value pairs in the call.
 
-=cut
+  fakeit - set to create a function which actually does nothing
 
-use vars qw($tmpdir $tmpref $tmpname $keeporig);
+  tree_mode - set to true to substitute also URLs which are "beneath"
+	      original url
 
-$keeporig=1;
-$tmpdir="/tmp/";
-$tmpref="link_repair";
-$tmpname="$tmpdir$tmpref" . "repair.$$";
+  keep_orig - set to false to inhibit creation of backup files
 
-sub gen_simple_file_handler ($;\%) {
-  my ($substitutor) = shift;
-  my ($basehash) = shift;
+  relative - substitute also relative relative URLs which are equivalent
+		     to original url (requires file_to_url)
 
-  die "substitutor needs to be a function"
-    unless ref ($substitutor) =~ m/CODE/;
+  file_to_url - provide a function which can translate a given filename
+                to a URL, so we can work out relative URLs for the current
+                file.
 
-  if ($basehash) {
-    my $regex="";
-    while (my $dir=each(%$basehash) ) {
-      my $url=$basehash->{$dir};
-      my $regex .= $dir
-    }
-  } else {
-    return sub ($) {
-      my ($filename)=@_;
-      print STDERR "file handler called for $filename\n" if $::verbose && 8;
-      die "file handler called with undefined values" unless defined $filename;
-      -d $filename && return 0;
-      -f $filename or do {warn "can't fix special file $filename"; return 0};
-      if ($WWW::Link::Repair::fakeit) {
-	print STDERR "pretending to edit $filename\n";
-	-W $filename or warn "file $filename can't be edited";
-      } else {
-	open (FIXFILE, "<$filename")
-	  or do { die "can't access $filename"; return 0};
-	open (TMPFILE, ">$tmpname") or die "can't use tempfile $tmpname";
-	while (<FIXFILE>) {
 
-	  &$substitutor( $_);
-	  print TMPFILE $_;
+so a call like
 
-	}
-	close TMPFILE;
-	close FIXFILE;
-	#FIXME edit failure??    LOGME
-	print STDERR "Changed links in file $filename\n"
-	  if $WWW::Link::Repair::verbose & 16;
-	#FIXME could we do a pure rename(2) solution..
-	#   die "filename tainted when should be clean"
-	#      if &::is_tainted($filename);
-	#I think this is the key bit of the program which needs to be SUID
-	#and could even be separated out for more security.. <<EOSU
-	rename($filename, $filename . ".orig") if $keeporig;
-	copy($tmpname, $filename);
-	#EOSU
-	unlink $tmpname;	#assuming we used it..
-      }
-    }
-  }
-}
+  $subs=gen_file_substitutor
+             ("http://www.example.com/friendstuff/old",
+              "http://www.example.com/friendstuff/new",
+              relative => 1, tree_mode => 1;
+              file_to_url => 
+              sub { my $ret=shift;
+		$ret =~ return s,/var/www/me,http://www.example.com/mystuff,;
+		return $ret});
 
-# =head3  realativeise
+  &$subs("/var/www/me/index.html");
+  &$subs("/var/www/me/friends.html");
 
-# relativeise makes a relative URL from an absolute one.  This is a
-# nasty job to do properly and I can't be bothered yet.
-
-# =cut
+should allow you to fix your web pages if your friend renames a whole
+directory.
 
 =head1 BUGS
 
@@ -442,10 +247,100 @@ to the correct version.  For this reason, if gen_directory_substitutor
 is passed the first form of a url, it will not substitute the second.
 If passed the second, it will substitute the first.
 
+We have to be fed whole URLs at a time.  If a url is split between two
+different chunks then we may not handle it correctly.  Always feeding
+in a complete line protects us from this because a URL cannot contain
+an unencoded line break.
+
 =cut
 
 
-1;
+use vars qw($tmpdir $tmpref $tmpname $keeporig_default);
+$tmpdir="/tmp/";
+$tmpref="link_repair";
+$tmpname="$tmpdir$tmpref" . "repair.$$";
+$keeporig_default=1;
 
+sub gen_file_substitutor ($$;%) {
+  my $origurl=shift;
+  my $finalurl=shift;
+  my %settings=@_;
+
+  my $tree_mode=$settings{tree_mode};
+  my $relative=$settings{relative};
+  my $file_to_url=$settings{file_to_url};
+  my $keeporig=$settings{keeporig};
+  my $fakeit=$settings{fakeit};
+
+  $keeporig=$keeporig_default unless defined $keeporig;
+
+  print STDERR "generating a file substitutor\n" if $verbose;
+  $verbose & 32 and do {
+    print STDERR <<EOF;
+From: $origurl
+To: $finalurl
+Settings:-
+EOF
+print "keeporig: " . ( $keeporig ? $keeporig : "undef" )
+  . " relative: " . ( $relative ? $relative : "undef" )
+    . " file_to_url: " . ( $file_to_url ? $file_to_url : "undef" )
+      . " fakeit: " . ( $fakeit ? $fakeit : "undef" ) . " \n";
+  };
+
+  my $subs;
+  if ($relative) {
+    $file_to_url
+      or die "relative substitution needs a file_to_url translator"
+  } else {
+    $subs = gen_substitutor($origurl,$finalurl,$tree_mode);
+  }
+
+  return sub () {
+    my $filename=shift;
+
+    print STDERR "file handler called for $filename\n" if $verbose && 8;
+
+    if ($relative) {
+      my $baseuri=&$file_to_url($filename);
+      print STDERR "URI for file $filename is $baseuri\n" if $verbose;
+      $subs = gen_substitutor($origurl,$finalurl,$tree_mode, $baseuri);
+    }
+
+    my $fixed=0;
+
+    die "file handler called with undefined values" unless defined $filename;
+    -d $filename && return 0;
+    -f $filename or do {warn "can't fix special file $filename"; return 0};
+
+    if ($fakeit) {
+      print STDERR "pretending to edit $filename\n";
+      -W $filename or warn "file $filename can't be edited";
+    } else {
+      open (FIXFILE, "<$filename")
+	or do { die "can't access $filename"; return 0};
+      open (TMPFILE, ">$tmpname") or die "can't use tempfile $tmpname";
+      while (<FIXFILE>) {
+	$fixed += &$subs( $_);
+	print TMPFILE $_;
+      }
+      close TMPFILE;
+      close FIXFILE;
+      #FIXME edit failure??    LOGME
+      print STDERR "Changed links in file $filename\n"
+	if $WWW::Link::Repair::verbose & 16;
+      #I think this is the key bit of the program which needs to be SUID
+      #and could even be separated out for more security.. <<EOSU
+      rename($filename, $filename . ".orig") if $keeporig;
+      copy($tmpname, $filename);
+      #EOSU
+      unlink $tmpname;		#assuming we used it..
+    }
+    return $fixed;
+  }
+}
+
+
+
+1;
 
 

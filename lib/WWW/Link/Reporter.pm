@@ -66,6 +66,7 @@ anything with it.
 =cut
 
 package WWW::Link::Reporter;
+$REVISION=q$Revision: 1.8 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 #default value for verbosity..
 #$WWW::Link::Reporter::verbose=0xFF;

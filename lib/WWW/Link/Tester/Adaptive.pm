@@ -1,4 +1,5 @@
 package WWW::Link::Tester::Adaptive;
+$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -222,6 +223,7 @@ sub new {
 sub calculate_test_state {
   my $self=shift;
   my $link=shift;
+  my $verbose=$self->{"verbose"};
 
   defined $self->{'simple'} && do {
     warn 'deleting $self->{simple} from cookie';
@@ -264,7 +266,8 @@ sub calculate_test_state {
     $inconsistency = $_ if $_ > $inconsistency;
   }
 
-  print STDERR "link inconsistency $inconsistency\n";
+  print STDERR "link inconsistency $inconsistency\n"
+    if $::verbose;
 
  CASE: {
 
@@ -272,16 +275,19 @@ sub calculate_test_state {
       ( $count % TRY_COMPLEX_EVERY_SIMPLE )
 	== ( TRY_COMPLEX_EVERY_SIMPLE - 1 )
 	  and return MODE_COMPLEX, TIME_NORMAL;
-      print STDERR "returning simple for normal testing\n";
+      print STDERR "returning simple for normal testing\n"
+	if $::verbose;
       return MODE_SIMPLE, TIME_NORMAL;
     };
 
     $inconsistency < STABLE_INCONSISTENT && do {
       if ( $responses[0][3] == MODE_COMPLEX){
-	print STDERR "returning simple for instability testing\n";
+	print STDERR "returning simple for instability testing\n"
+	  if $::verbose;
 	return MODE_SIMPLE, TIME_SHORT;
       } else {
-	print STDERR "returning complex for instability testing\n";
+	print STDERR "returning complex for instability testing\n"
+	  if $::verbose;
 	return MODE_COMPLEX, TIME_NORMAL;
       }
     };
@@ -290,15 +296,15 @@ sub calculate_test_state {
       ( $count % TRY_SIMPLE_EVERY_COMPLEX )
 	== ( TRY_SIMPLE_EVERY_COMPLEX  - 1 )
 	  and do {
-	    print STDERR "returning simple incase it's working again\n";
+	    print STDERR "returning simple incase it's working again\n"
+	      if $::verbose;
 	    return MODE_SIMPLE, TIME_SHORT;
 	  };
-      print STDERR "returning complex for careful testing\n";
+      print STDERR "returning complex for careful testing\n"
+	if $::verbose;
       return MODE_COMPLEX, TIME_NORMAL;
     };
-
     die "no inconsistency value";
-
   }
 
   die "shouldn't get here";
@@ -317,6 +323,7 @@ sub calculate_test_state {
 sub consider_test {
   my $self=shift;
   my $link=shift;
+  my $verbose=$self->{"verbose"};
 
   my $response=shift;
   my $mode=shift;
@@ -340,9 +347,11 @@ sub consider_test {
 
   $self->{test_consistency} = [] unless defined $self->{test_consistency};
 
-  print STDERR "mode is $mode and old mode is $old_mode\n";
+  print STDERR "mode is $mode and old mode is $old_mode\n"
+      if $verbose;
   print STDERR "simple is ". MODE_SIMPLE
-    . " and complex is " . MODE_COMPLEX . "\n";
+    . " and complex is " . MODE_COMPLEX . "\n" if $verbose;
+
 
   #unsupported protocols should always be handled by simple by
   #default.  It's also possible for simple to handle some protocols
@@ -356,7 +365,8 @@ sub consider_test {
 
   ( $mode == MODE_SIMPLE and $old_mode == MODE_COMPLEX )
     || ( $mode == MODE_COMPLEX and $old_mode == MODE_SIMPLE ) and do {
-      print STDERR "considering consistency of last two tests\n";
+      print STDERR "considering consistency of last two tests\n"
+	  if $verbose;
       my $scode = short_code( ($mode == MODE_SIMPLE)
 			      ? $old_response->code
 			      : $old_response->code );

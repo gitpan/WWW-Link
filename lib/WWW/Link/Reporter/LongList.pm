@@ -26,6 +26,7 @@ example by C<link-report-dired> in C<emacs>
 =cut
 
 package WWW::Link::Reporter::LongList;
+$REVISION=q$Revision: 1.5 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 use WWW::Link::Reporter::Text;
 @ISA = qw(WWW::Link::Reporter::Text);

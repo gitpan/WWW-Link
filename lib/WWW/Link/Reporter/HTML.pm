@@ -26,6 +26,7 @@ on.
 =cut
 
 package WWW::Link::Reporter::HTML;
+$REVISION=q$Revision: 1.7 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 use WWW::Link;
 use HTML::Stream;

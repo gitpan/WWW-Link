@@ -3,7 +3,7 @@
 =head1 NAME
 
 adaptive.t - test adaptive link tester
-    
+
 =head1 SYNOPSYS
 
 tester.t
@@ -51,12 +51,12 @@ sub simple_request {
     m,^http://www.headbad.com, && do {
       $method eq "HEAD" and do {
 	$response=new HTTP::Response (RC_NOT_FOUND, "Broken HEAD response");
-	print STDERR "returning broken for head response\n";
-      last;
+	print STDERR "returning broken for head response\n" if $::verbose;
+	last;
       };
       $method eq "GET" and do {
 	$response=new HTTP::Response (RC_OK, "Working GET response");
-	print STDERR "returning working for get response\n";
+	print STDERR "returning working for get response\n" if $::verbose;
       };
       last;
       die "unkown method";

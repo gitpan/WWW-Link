@@ -23,6 +23,7 @@ out an report which is suitable for use by emacs' compile mode.
 =cut
 
 package WWW::Link::Reporter::Compile;
+$REVISION=q$Revision: 1.7 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 use WWW::Link::Reporter;
 use English;
 @ISA = qw(WWW::Link::Reporter);
@@ -31,6 +32,8 @@ sub broken {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: broken link $url\n";
 }
 
@@ -47,6 +50,8 @@ sub okay {
   my $link=shift;
   my $redir=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   $redir && print "$ARGV:$INPUT_LINE_NUMBER: ";
   print "tested okay	$url\n";
   $redir && $self->redirections($link);
@@ -59,6 +64,8 @@ sub damaged {
   my $link=shift;
   my $redir=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: _may_ be broken link $url\n";
   $redir && $self->redirections($link);
   $self->suggestions($link);
@@ -69,6 +76,8 @@ sub not_checked {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: have not yet checked $url\n";
   $self->suggestions($link);
   return 1;
@@ -78,6 +87,8 @@ sub disallowed {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: checking of link not allowed $url\n";
   $self->suggestions($link);
   return 1;
@@ -87,6 +98,8 @@ sub unsupported {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: link uses unsupported protocol $url\n";
   $self->suggestions($link);
   return 1;
@@ -96,6 +109,8 @@ sub unknown {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: unknown link status; error?? $url\n";
   $self->suggestions($link);
   return 1;
@@ -104,6 +119,8 @@ sub unknown {
 sub not_found {
   my $self=shift;
   my $url=shift;
+  $ARGV="unknown file" unless defined $ARGV;
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
   print "$ARGV:$INPUT_LINE_NUMBER: no info for $url\n";
 }
 

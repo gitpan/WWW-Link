@@ -1,5 +1,6 @@
 .cvsignore
 BUGS
+COPYING
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
@@ -40,10 +41,12 @@ make-rpm-command
 sample-infostruc/banana.html
 sample-infostruc/strawberry.html
 t/adaptive.t
+t/file-repair.t
 t/link.t
 t/redirect.t
 t/repair.t
 t/reporter.t
 t/selector.t
 t/substitutor.t
+t/tester-base.t
 t/tester.t

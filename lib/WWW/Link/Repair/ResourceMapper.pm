@@ -1,4 +1,5 @@
 package WWW::Link::Repair::Mapper;
+$REVISION=q$Revision: 1.4 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME 
 

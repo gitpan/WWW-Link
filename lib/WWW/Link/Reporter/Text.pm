@@ -23,6 +23,7 @@ much can be done other than read it.
 =cut
 
 package WWW::Link::Reporter::Text;
+$REVISION=q$Revision: 1.8 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 @ISA = qw(WWW::Link::Reporter);
 

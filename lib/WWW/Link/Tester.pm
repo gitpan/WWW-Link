@@ -1,4 +1,5 @@
 package WWW::Link::Tester;
+$REVISION=q$Revision: 1.12 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -28,9 +29,9 @@ use warnings;
 use HTTP::Status;
 
 sub MSG_PROTOCOL_UNSUPPORTED () {"Unsupported protocol";}
-sub RC_PROTOCOL_UNSUPPORTED () {498;} 
+sub RC_PROTOCOL_UNSUPPORTED () {498;}
 sub MSG_REDIRECT_LIMIT_EXCEEDED () {"Too Many Redirects";}
-sub RC_REDIRECT_LIMIT_EXCEEDED () {499;} 
+sub RC_REDIRECT_LIMIT_EXCEEDED () {499;}
 
 sub new {
   my $proto = shift;
@@ -88,27 +89,33 @@ sub apply_response {
   my $response=shift;
   my @redirects=@_;
 
+  my $verbose=$self->{"verbose"};
+
   my $mode=$self->{mode};
 
   confess "response wasn't an object" unless ref $response;
  CASE: {
     robot_lockout($response) && do {
-      print STDERR "checking disallowed, signalling link\n";
+      print STDERR "checking disallowed, signalling link\n"
+	if $::verbose;
       $link->disallowed();
       last;
     };
     unsupported($response) && do {
-      print STDERR "checking disallowed, signalling link\n";
+      print STDERR "checking disallowed, signalling link\n"
+	if $::verbose;
       $link->unsupported();
       last;
     };
     $response->is_error() && do {
-      print STDERR "response was an error, signalling link\n";
+      print STDERR "response was an error, signalling link\n"
+	if $::verbose;
       $link->failed_test(); #someone should come look
       last;
     };
     $response->is_success() && do {
-      print STDERR "response was success, signalling link\n";
+      print STDERR "response was success, signalling link\n"
+	if $::verbose;
       $link->passed_test();
       last;
     };

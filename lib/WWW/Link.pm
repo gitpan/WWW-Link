@@ -22,8 +22,8 @@ into something which can be used by humans.
 =cut
 
 package WWW::Link;
-$REVISION=q$Revision: 1.17 $ ;
-$VERSION = '0.030'; #BETA / under development
+$REVISION=q$Revision: 1.18 $ ;
+$VERSION = '0.031'; #BETA / under development
 use Carp;
 use strict;
 use vars qw($verbose $VERSION);

@@ -1,5 +1,5 @@
 package WWW::Link::Tester;
-$REVISION=q$Revision: 1.12 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.13 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -56,6 +56,13 @@ sub get_response {
   confess "get_response must be implemented in the child class";
 }
 
+sub verbose {
+  my $self=shift;
+  my $verb=shift;
+  $self->{verbose} = $verb if defined $verb;
+  return $self->{verbose};
+}
+
 
 =head2 handle_response
 
@@ -94,6 +101,8 @@ sub apply_response {
   my $mode=$self->{mode};
 
   confess "response wasn't an object" unless ref $response;
+  confess "non numeric response code" . $response->code() unless
+    $response->code() =~ m/[1-9][0-9]+/;
  CASE: {
     robot_lockout($response) && do {
       print STDERR "checking disallowed, signalling link\n"
@@ -136,8 +145,11 @@ sub config {
 
 sub robot_lockout {
     my $response=shift;
-    $response->code() == RC_FORBIDDEN && $response->message() =~ /robots\.txt/
-	and return 1;
+    $response->code() == RC_FORBIDDEN or return 0;
+    my $message = $response->message();
+    #FIXME; this is because the Complex tester looses this informaition!
+    defined $message or return 1;
+    $message=~ /robots\.txt/ and return 1;
     return 0;
 }
 

@@ -1,5 +1,7 @@
 package WWW::Link::Tester::Complex;
-$REVISION=q$Revision: 1.7 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.8 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+
+use Carp qw(carp cluck croak);
 
 =head1 NAME
 
@@ -299,9 +301,9 @@ sub new {
   bless $self, $class;
 }
 
-use vars qw($redirect_count $redirects);
+use vars qw($redirect_count $redirects %convert);
 
-my %convert=(
+%convert=(
 	     $REDIRECT_LIMIT_EXCEEDED => RC_REDIRECT_LIMIT_EXCEEDED,
 	     $UNSUPPORTED_PROTOCOL => RC_PROTOCOL_UNSUPPORTED,
 	     $MALFORMED_URL => RC_PROTOCOL_UNSUPPORTED,
@@ -316,13 +318,21 @@ sub get_response {
   my $link=shift;
   $redirects=[];
   $redirect_count=0;
+  %url_hash=();
   my $code=$self->follow_url($link->url());
+  scalar (keys %convert);
  CONVERT: while (my ($key,$value) = each %convert) {
     $code eq $key && do {
       $code=$value;
       last CONVERT;
     };
   }
+  print STDERR "COMPLEX generated response code $code\n" 
+    if $self->{verbose};
+#cluck and die here generate coredumps!!!???! in perl 5.6.0 on Linux
+#  cluck STDERR "COMPLEX generated response code $code";
+  die "non numeric response code generated" . $code
+      unless $code =~ m/[1-9][0-9]+/;
   my $response=HTTP::Response->new($code);
 
   die "response: $response not reference" unless ref $response ;

@@ -23,7 +23,7 @@ out an report which is suitable for use by emacs' compile mode.
 =cut
 
 package WWW::Link::Reporter::Compile;
-$REVISION=q$Revision: 1.7 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.8 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 use WWW::Link::Reporter;
 use English;
 @ISA = qw(WWW::Link::Reporter);
@@ -32,9 +32,9 @@ sub broken {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: broken link $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: broken link $url\n";
 }
 
 =head2 okay
@@ -50,9 +50,9 @@ sub okay {
   my $link=shift;
   my $redir=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  $redir && print "$ARGV:$INPUT_LINE_NUMBER: ";
+  $redir && print "$filename:$INPUT_LINE_NUMBER: ";
   print "tested okay	$url\n";
   $redir && $self->redirections($link);
   $self->suggestions($link);
@@ -64,9 +64,9 @@ sub damaged {
   my $link=shift;
   my $redir=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: _may_ be broken link $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: _may_ be broken link $url\n";
   $redir && $self->redirections($link);
   $self->suggestions($link);
   return 1;
@@ -76,9 +76,9 @@ sub not_checked {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: have not yet checked $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: have not yet checked $url\n";
   $self->suggestions($link);
   return 1;
 }
@@ -87,9 +87,9 @@ sub disallowed {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: checking of link not allowed $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: checking of link not allowed $url\n";
   $self->suggestions($link);
   return 1;
 }
@@ -98,9 +98,9 @@ sub unsupported {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: link uses unsupported protocol $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: link uses unsupported protocol $url\n";
   $self->suggestions($link);
   return 1;
 }
@@ -109,9 +109,9 @@ sub unknown {
   my $self=shift;
   my $link=shift;
   my $url=$link->url();
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: unknown link status; error?? $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: unknown link status; error?? $url\n";
   $self->suggestions($link);
   return 1;
 }
@@ -119,9 +119,17 @@ sub unknown {
 sub not_found {
   my $self=shift;
   my $url=shift;
-  $ARGV="unknown file" unless defined $ARGV;
+  my $filename=$self->filename();
   $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
-  print "$ARGV:$INPUT_LINE_NUMBER: no info for $url\n";
+  print "$filename:$INPUT_LINE_NUMBER: no info for $url\n";
+}
+
+sub invalid {
+  my $self=shift;
+  my $url=shift;
+  my $filename=$self->filename();
+  $INPUT_LINE_NUMBER="unknown line" unless defined $INPUT_LINE_NUMBER;
+  print "$filename:$INPUT_LINE_NUMBER: non valid url $url\n";
 }
 
 sub redirections {
@@ -143,4 +151,25 @@ sub suggestions {
     }
   }
   return 1;
+}
+
+=head2 filename
+
+The filename function can be called with one argument to set the
+filename or will return the current idea of the filename if none is
+given.
+
+Until the filename is set, filename will return the current contents
+of C<$ARGV>.  After it has been set it will return whatever value was
+last given.
+
+=cut
+
+sub filename {
+  my $self=shift;
+  my $name=shift;
+  $self->{filename}=$name if defined $name;
+  return $self->{filename} if defined $self->{filename};
+  return $ARGV if defined $ARGV;
+  return "unknown file";
 }

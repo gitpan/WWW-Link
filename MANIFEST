@@ -1,6 +1,7 @@
 .cvsignore
 BUGS
 COPYING
+Changes
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
@@ -9,15 +10,12 @@ TODO
 bin/delete-relative.pl
 bin/fix-old-db.pl
 doc/adaptive.txt
-doc/broken.pod
 doc/candidate-objects.pod
-doc/no-check.pod
-doc/okay.pod
-doc/permanent-redirect.pod
-doc/temporary-redirect.pod
+doc/redirect-handling.pod
 lib/WWW/Link.pm
 lib/WWW/Link/Change.pm
 lib/WWW/Link/Merge.pm
+lib/WWW/Link/Redirect.pm
 lib/WWW/Link/Repair.pm
 lib/WWW/Link/Repair/ResourceMapper.pm
 lib/WWW/Link/Repair/Substitutor.pm
@@ -27,6 +25,7 @@ lib/WWW/Link/Reporter/HTML.pm
 lib/WWW/Link/Reporter/LongList.pm
 lib/WWW/Link/Reporter/RepairForm.pm
 lib/WWW/Link/Reporter/Text.pm
+lib/WWW/Link/Reporter/URI.pm
 lib/WWW/Link/Reporter/junk
 lib/WWW/Link/Selector.pm
 lib/WWW/Link/Test.pm
@@ -50,3 +49,4 @@ t/selector.t
 t/substitutor.t
 t/tester-base.t
 t/tester.t
+t/unsupported.t

@@ -6,7 +6,8 @@ tests for all of the different reporters
 
 =cut
 
-BEGIN {print "1..66\n"}
+$::verbose=0 unless defined $::verbose;
+BEGIN {print "1..79\n"}
 END {print "not ok 1\n" unless $loaded;}
 
 sub nogo {print "not "}
@@ -16,6 +17,7 @@ use WWW::Link::Reporter;
 use WWW::Link::Reporter::Compile;
 
 use WWW::Link::Reporter::Text;
+use WWW::Link::Reporter::URI;
 use WWW::Link::Reporter::LongList;
 
 use WWW::Link::Reporter::HTML;
@@ -26,9 +28,51 @@ use WWW::Link;
 $loaded = 1;
 ok(1);
 
+package myindex;
+
+=head1 DESCRIPTION
+
+This provides the minimum functions needed for the index used by
+longlist.
+
+=cut
+
+use vars qw($next %store);
+
+sub new {return bless {}, "myindex"}
+
+%store = (
+  'http://www.bounce.com/' => 'http://www.fake.com/banana.html',
+);
+
+%erost=();
+
+while (my ($key,$value) = each (%store)) {
+  $erost{$value}=$key;
+}
+
+sub lookup_second {
+  my $self=shift;
+  my $key=shift;
+  print STDERR "lookup second $key\n" if $::verbose;
+  return [split /\s/, $store{$key}];
+}
+
+package main;
+
+use Cwd;
+
+sub my_url_to_file {
+  my $file=shift;
+  my $cwd = cwd();
+  $file =~ s,http://www\.fake\.com/.*,$cwd/sample-infostruc/banana.html,;
+  return $file;
+}
+
+
 #n.b. we do not test WWW::Link::Reporter!
 
-@reporters=qw(WWW::Link::Reporter::Compile
+@reporters=qw(WWW::Link::Reporter::Compile WWW::Link::Reporter::URI
 	      WWW::Link::Reporter::Text WWW::Link::Reporter::LongList
 	      WWW::Link::Reporter::HTML WWW::Link::Reporter::RepairForm);
 $testno=2;
@@ -39,8 +83,17 @@ sub try_report ($$);
 
 $tempfile="/tmp/test-temp.$$";
 
+
 foreach my $class (@reporters) {
-  my $reporter=new $class ;
+  my $reporter;
+ CASE: {
+    $class =~ m/LongList/ && do {
+      my $index=new myindex;
+      $reporter=$class->new(\&my_url_to_file, $index);
+      last CASE;
+    };
+    $reporter=new $class ;
+  }
   my $link=new WWW::Link "http://www.bounce.com/";
 
   print STDERR " test $testno testing reporter: $class\n";
@@ -138,3 +191,4 @@ sub try_report ($$){
   close ( TEMPFILE ) || die "couldn't close tempfile";
   return $found;
 }
+

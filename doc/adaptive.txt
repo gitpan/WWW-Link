@@ -1,56 +1,21 @@
+This contains some thoughts behind adaptive testing.
+
 normally we allow simple testing
 
 if we check complex and it matches the normal result then we treat it
 as just another test and continue as normal.
 
-if we check complex and it doesn't match, we treat it as a problem.
-next time we try simple again.  If it is still inconsistent with the
-complex testing we try complex next time.  If it is consistently
-inconsistent then we decide that we can't test with simple, mark the
-link and continue onwards.
+if we check complex and it doesn't match, we treat it as a problem and
+store that information in the link.
 
 if we are checking complex, then occastionally we try simple.  if it
-is consistent with the complex testing then we immediately switch back
-to simple testing.  
+is consistent then we may switch back, but only if we can be sure that
+all different response codes work okay..
 
 This means that complex testing remains basically our reference and
 must be very carefully verified to give correct answers.  Simple
 testing, on the other hand, should be designed to be resource
 efficient.
-
-when in complex testing mode
-
-	if the last test was simple and matched the previous 
-
-
-when in simple testing mode
-
-	if the last test was complex and disagreed with the previous 
-	simple test then do a special simple test 
-
-	if the last test was complex then do a simple test
-
-	if the last test was simple then do a complex test every X tests
-
-	do a simple test as normal
-
-
-
-
-
-pure simple mode - mostly simple testing
-----------------
-get a complex to simple missmatch move to suspicious
-
-
-suspicious mode - alternate testing 
----------------
-simple doesn't match complex - move to very suspicious mode
-simple now matches complex - return to pure simple mode
-
-complex mode - mostly complex testing
---------------
-
 
 for each code we have an inconsistency factor
 
@@ -62,14 +27,12 @@ when we have inconsistency < 3 we test alternately
 
 when one inconsistency factor is > 3 we almost always test complex
 
-
-
 when do we apply a test???
 
-we have just done a short test -> don't apply
 we have just done a complex test -> apply
 we have done a simple test which made us consistent -> apply
 we have done a simple test made us inconsistent -> do not apply
+we have done a different simple test  -> apply
 
 
 

@@ -1,5 +1,8 @@
 =head1 CANDIDATE OBJECTS
 
+This is just a list of possible objects which could be used for
+keeping information about links.
+
 =head2 link
 
 a link is the full set of information about a link to another infostructure.

@@ -1,5 +1,5 @@
 package WWW::Link::Repair::Substitutor;
-$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.12 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -79,13 +79,76 @@ to
 
   http://roger.jemima/food/eating-out/hotels.html
 
+This function should handle fragments correctly.  This means that we
+should allow fragments to be substituted to and from normal links, but
+also when we fix a url to a url all of the internal fragments should
+follow.  Fragments are not relative links.  Cases
+
+=over 4
+
+=item 1
+
+substitution of fragment for fragment
+
+=item 2
+
+substitution of link for link
+
+=item 3
+
+substitution of link to fragment
+
+=item 4
+
+substitution of fragment to link
+
+=item 5
+
+substitution of url base for url base with all relative links
+
+=back
+
+Note that right now it isn't possible to substitute a tree under a
+fragment.  There is no such thing as a sub-fragment defined in the
+standards.
+
+If we stubstitute a link to a fragment then we should not substitute
+fragments under that link.  that would loose information.  Rather we
+should issue a warning. Maybe there should be an option that lets this
+happen.
+
 =cut
 
+#substitution of link for link - including tree mode (never has fragments)
+#match url without fragment - fragment remains
+
+#substitution of fragment for fragment
+#match whole link
+
+#substitution of link to link with fragment
+#substitute whole link
+#SHOULD MATCH BUT WARN IF WE FIND AN EXISTING FRAGMENT
+#will fail to match and leave
+
+#substitution of link with fragment to link
+#match the whole link
+
+
+#substitution of url base for url base with all relative links
+
+
+
 sub gen_substitutor ($$;$$) {
-  my ($original_url,$new_url,$tree_mode,$baseuri) = @_;
+  my ($orig_url,$new_url,$tree_mode,$baseuri) = @_;
+  my ($new_has_fragment) = my ($orig_has_fragment ) =0;
+  $orig_url =~ m/#/ and $orig_has_fragment =1;
+  $new_url =~ m/#/ and $new_has_fragment =1;
+
+  ( $orig_has_fragment or $new_has_fragment ) and $tree_mode
+    and die "can't do tree mode substitution with fragments";
 
   print STDERR
-    "Generating substitutor from $original_url to $new_url \n",
+    "Generating substitutor from $orig_url to $new_url \n",
     (defined $baseuri ? "using base $baseuri\n" : "" ) if ($verbose & 32);
 
   defined $baseuri and ( not $baseuri =~ m/^[a-z][a-z0-9]*:/ )
@@ -94,7 +157,7 @@ sub gen_substitutor ($$;$$) {
   my $orig_rel;
   my $new_rel;
   defined $baseuri and do {
-    my $orig_uri=URI->new($original_url);
+    my $orig_uri=URI->new($orig_url);
     my $new_uri=URI->new($new_url);
     $orig_rel=$orig_uri->rel($baseuri);
     $new_rel=$new_uri->rel($baseuri);
@@ -129,21 +192,40 @@ EOF
 
   my $remiddle = '';
 
-  unless ($original_url=~ m,/$, and $tree_mode) {
+  unless ($orig_url=~ m,/$, and $tree_mode) {
     $remiddle  .= <<'EOF';
 
                  (?=(
 EOF
-    my $end_of_uri  = <<'EOF' ;
+
+#end_of_uri - ends at a fragment unless the first url is a fragment
+
+    my $end_of_uri;
+  CASE: {
+      $tree_mode && do {
+	$end_of_uri  = <<'EOF' ;
+                     ([#"'/>]) #" either end or end of section
+EOF
+	last CASE;
+      };
+      ( not $orig_has_fragment and not $new_has_fragment ) && do {
+	$end_of_uri  = <<'EOF' ;
+                     ([#"'>]) #" this checks for the end of the url..
+EOF
+	last CASE;
+      };
+      do {
+	$end_of_uri  = <<'EOF' ;
                      (["'>]) #" this checks for the end of the url..
 EOF
-    my $end_of_root  = <<'EOF' ;
-                     (["'/>]) #" either end or end of section
-EOF
+	last CASE;
+      };
+      die "not reached";
+    }
 
-    $remiddle  .= ($tree_mode ? $end_of_root : $end_of_uri);
+    $remiddle  .= $end_of_uri;
 
-    $remiddle  .= <<'EOF' unless $original_url=~ m,/$,;
+    $remiddle  .= <<'EOF' unless $orig_url=~ m,/$,;
 		     |(\s)
 		     |($)
 EOF
@@ -162,13 +244,13 @@ EOF
 
   #FIXME: url quoting into regex??
 
-  $perlcode .= $restart . $original_url . $remiddle . $new_url . $reend;
+  $perlcode .= $restart . $orig_url . $remiddle . $new_url . $reend;
   if ($baseuri) {
-    $perlcode .= $restart . "$orig_rel" . $remiddle . "$new_rel" . $relreend;
+    $perlcode .= $restart . $orig_rel . $remiddle . $new_rel . $relreend;
   }
 
   $perlcode .= <<'EOF' if ($verbose & 16);
-      print STDERR "Gives : $_[0]\n";
+      print STDERR "Gives   : $_[0]\n";
 EOF
 
   $perlcode .= <<'EOF';

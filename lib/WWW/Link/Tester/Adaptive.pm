@@ -1,5 +1,5 @@
 package WWW::Link::Tester::Adaptive;
-$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.12 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -99,9 +99,14 @@ sub handle_response {
 
   my $apply=$cookie->consider_test($link,$response,$mode);
 
+
   if ( $apply ) {
+    print STDERR "applying response\n" if $self->{verbose};
     $self->apply_response($link,$response,@redirects);
+  } else {
+    print STDERR "not applying response\n" if $self->{verbose};
   }
+
   $link->store_response($response, time, ref $self, $mode);
   $link->test_cookie($cookie);
 }
@@ -132,6 +137,8 @@ package WWW::Link::Tester::Adaptive::Cookie;
 
 use warnings;
 use WWW::Link::Tester;
+
+our ( $verbose );
 
 =head1 TESTING MODES
 
@@ -223,7 +230,6 @@ sub new {
 sub calculate_test_state {
   my $self=shift;
   my $link=shift;
-  my $verbose=$self->{"verbose"};
 
   defined $self->{'simple'} && do {
     warn 'deleting $self->{simple} from cookie';
@@ -267,7 +273,7 @@ sub calculate_test_state {
   }
 
   print STDERR "link inconsistency $inconsistency\n"
-    if $::verbose;
+    if $verbose;
 
  CASE: {
 
@@ -276,18 +282,18 @@ sub calculate_test_state {
 	== ( TRY_COMPLEX_EVERY_SIMPLE - 1 )
 	  and return MODE_COMPLEX, TIME_NORMAL;
       print STDERR "returning simple for normal testing\n"
-	if $::verbose;
+	if $verbose;
       return MODE_SIMPLE, TIME_NORMAL;
     };
 
     $inconsistency < STABLE_INCONSISTENT && do {
       if ( $responses[0][3] == MODE_COMPLEX){
 	print STDERR "returning simple for instability testing\n"
-	  if $::verbose;
+	  if $verbose;
 	return MODE_SIMPLE, TIME_SHORT;
       } else {
 	print STDERR "returning complex for instability testing\n"
-	  if $::verbose;
+	  if $verbose;
 	return MODE_COMPLEX, TIME_NORMAL;
       }
     };
@@ -297,11 +303,11 @@ sub calculate_test_state {
 	== ( TRY_SIMPLE_EVERY_COMPLEX  - 1 )
 	  and do {
 	    print STDERR "returning simple incase it's working again\n"
-	      if $::verbose;
+	      if $verbose;
 	    return MODE_SIMPLE, TIME_SHORT;
 	  };
       print STDERR "returning complex for careful testing\n"
-	if $::verbose;
+	if $verbose;
       return MODE_COMPLEX, TIME_NORMAL;
     };
     die "no inconsistency value";
@@ -323,7 +329,6 @@ sub calculate_test_state {
 sub consider_test {
   my $self=shift;
   my $link=shift;
-  my $verbose=$self->{"verbose"};
 
   my $response=shift;
   my $mode=shift;
@@ -360,7 +365,7 @@ sub consider_test {
   ( $mode == MODE_COMPLEX and $response->code == RC_PROTOCOL_UNSUPPORTED )
     and do {
       $self->{test_consistency} = [];
-      return 0;
+      return 1;
     };
 
   ( $mode == MODE_SIMPLE and $old_mode == MODE_COMPLEX )
@@ -387,8 +392,8 @@ sub consider_test {
     };
 
 
-  # inconsistency can be caused by one off network problems...  we decay
-  # it away if it isn't confirmed.
+  # inconsistency can be caused by intermittent network problems...
+  # we decay it away if it isn't confirmed.
 
   # FIXME: maybe we shouldn't do this when we have a known
   # inconsistent link?

@@ -22,8 +22,8 @@ into something which can be used by humans.
 =cut
 
 package WWW::Link;
-$REVISION=q$Revision: 1.21 $ ;
-$VERSION = '0.033'; #BETA / under development
+$REVISION=q$Revision: 1.25 $ ;
+$VERSION = '0.036'; #BETA / under development
 use Carp;
 use strict;
 use vars qw($verbose $VERSION);
@@ -881,6 +881,17 @@ sub test_cookie {
   $self->{"test-cookie"}=$cookie if $cookie;
   return $self->{"test-cookie"};
 }
+
+=head1 DECLARING LINKS BROKEN
+
+A link isn't signalled as broken until after it has been checked
+several times and found not working.  The reason for this is quite
+simple.  There are many WWW servers in the world which aren't reliably
+accessable.  If a set of pages are checked at any given time a fair
+number of links could seem to be broken, even when they will soon be
+repaired.  In fact, in a well maintained set of pages (as I hope this
+package will let you have), these pages will outnumber by a large
+amount the number of actual broken links.
 
 =head1 LINK AGING
 

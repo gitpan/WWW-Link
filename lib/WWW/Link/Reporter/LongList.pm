@@ -26,21 +26,30 @@ example by C<link-report-dired> in C<emacs>
 =cut
 
 package WWW::Link::Reporter::LongList;
-$REVISION=q$Revision: 1.5 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 use WWW::Link::Reporter::Text;
 @ISA = qw(WWW::Link::Reporter::Text);
 use warnings;
 use strict;
+use Data::Dumper;
+use Carp;
 
 sub new {
   my $proto=shift;
-  my $filebase=pop @_; #reverse order so users put it in the right order.
-  my $urlbase=pop @_;
+  my $url_to_file=shift;
+  croak "usage <class>->new(<convert function>,<index>)"
+    unless ref $url_to_file and @_;
   my $class = ref($proto) || $proto;
   my $self  = $class->SUPER::new(@_);
-  $self->{"urlbase"}=$urlbase;
-  $self->{"filebase"}=$filebase;
+  $self->{"url_to_file"}=$url_to_file;
+
+  if ( $self->{"verbose"} & 128) {
+    my $dump=Dumper($self);
+    $dump =~ s/[^[:graph:]\s]/_/g;
+    print "self\n" . $dump . "\n";
+  }
+
   return $self;
 }
 
@@ -48,19 +57,19 @@ sub page_list {
   my $self=shift;
   my @worklist=();
   my @unresolve=();
-  my $urlbase=$self->{"urlbase"};
-  my $filebase=$self->{"filebase"};
-  foreach (@_) {
-    #FIXME generalise to use a mapping mechanism
-    if (s/$urlbase/$filebase/) {
-      push @worklist, $_;
+  my $url_to_file=$self->{"url_to_file"};
+  foreach my $url (@_) {
+    my $file = &$url_to_file($url);
+    if ($file) {
+      push @worklist, quotemeta ($file);
     } else {
-      push @unresolve,  $_;
+      push @unresolve,  $url;
     }
   }
-  my $workfile=join ' ', @worklist
-    if @worklist;
-  print `ls -l $workfile`; 
+  if ( @worklist ) {
+    my $workfile=join ' ', @worklist;
+    print `ls -l $workfile`;
+  }
   print 'unresolved:-  ', join ("\nunresolved:-  ", @unresolve), "\n"
     if @unresolve;
 }

@@ -66,7 +66,7 @@ anything with it.
 =cut
 
 package WWW::Link::Reporter;
-$REVISION=q$Revision: 1.8 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 #default value for verbosity..
 #$WWW::Link::Reporter::verbose=0xFF;
@@ -89,6 +89,7 @@ sub new ($;$) {
   my $class = ref($proto) || $proto;
   my $self  = {};
   $self->{"index"}=shift;
+  ref $index or croak "index must be a reference" if defined $index;
   bless ($self, $class);
   #next come settings
   $self->{"verbose"}=$WWW::Link::Reporter::verbose;
@@ -369,6 +370,26 @@ sub report_not_perfect () {
   my ($self,$value)=@_;
   $self->all_reports(1);
   $self->report_okay(0);
+}
+
+=head1 report_good()
+
+This sets reporting which should show all links which are probably not
+broken.  Currently that defininition includes all redirected links and
+those that are unsupported etc. Excludes are broken links and ones
+where checking is disallowed.
+
+Since this function is designed for automatic link page
+maintainainance, however, as any other ways of detecting broken links
+are discovered, those links will be excluded.
+
+=cut
+
+sub report_good () {
+  my ($self,$value)=@_;
+  $self->all_reports(1);
+  $self->report_broken(0);
+  $self->report_disallowed(0);
 }
 
 =head1 INDIVIDUAL REPORTS

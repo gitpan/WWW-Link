@@ -1,3 +1,18 @@
+=head1 Redirects
+
+There are multiple kinds of redirects.  
+
+=head1 Permanent Redirects.
+
+A permanent redirect is a sign that a resource has been moved.  You
+would use it, for example, if you changed internet provider and had to
+change where your pages were, or if you moved a page around within
+your web site.
+
+Permanent redirects are the correct way to signal a change of link,
+and if everything worked properly, detecting these would be about the
+main job of a link checker.  It doesn't of course.
+
 =head1 Temporary Redirects
 
 According to the HTTP definitions, a temporary redirect is just
@@ -19,9 +34,19 @@ It is also possible that someone has chosen the wrong kind of redirect
 through some kind of misunderstanding.  The symptoms would be
 
 =over 4
-=item * the redirect wasn't there before
-=item * the redirect only goes to one page
-=item * the pages mention the new redirect
+
+=item * 
+
+the redirect wasn't there before
+
+=item * 
+
+the redirect only goes to one page
+
+=item * 
+
+the pages mention the new redirect
+
 =cut
 
 For this reason, temporary redirects should, by default, be shown to

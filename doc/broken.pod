@@ -1,0 +1,23 @@
+=head1 Broken links
+
+A link isn't signalled as broken until after it has been checked
+several times and found not working.  The reason for this is quite
+simple.  There are many WWW servers in the world which aren't reliably
+accessable.  If a set of pages are checked at any given time a fair
+number of links could seem to be broken, even when they will soon be
+repaired.  In fact, in a well maintained set of pages (as I hope this
+package will let you have), these pages will outnumber by a large
+amount the number of actual broken links.  
+
+For this reason, we allow (in the default settings) a minimum of five
+re-trys over ten days before actually signalling that a link is
+broken.  After that we can be reasonably sure that the link really
+does have some problem and is not just temporarily down. 
+
+The main implication of a link declaring its self broken is that it
+will be checked less often (although it still gets checked
+occasionally because it is possible that there is some long term
+problem).  The user settings I<will eventually> determine when it
+is signalled as broken to people using it.
+
+=cut

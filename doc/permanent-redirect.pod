@@ -1,0 +1,12 @@
+=head1 Permanent Redirects.
+
+A permanent redirect is a sign that a resource has been moved.  You
+would use it, for example, if you changed internet provider and had to
+change where your pages were, or if you moved a page around within
+your web site.
+
+Permanent redirects are the correct way to signal a change of link,
+and if everything worked properly, detecting these would be about the
+main job of a link checker.  It doesn't of course.
+
+=cut

@@ -1,0 +1,7 @@
+Link is a demonstrator module.  I want to see what is useful to do
+with Links.  One clear thing I'd like to do soon is start to store
+Links (partially?) in relational databases so that some attributes can
+be used directly in web page generation (the rest is obvious :-).  The
+only question is what should be stored where and how.
+
+

@@ -1,0 +1,34 @@
+=head1 Un-checkable Links
+
+Some links can't be checked because the target url doesn't have an
+easy method of verification or because the link checker doesn't have
+the facilities needed for verification.  Examples of this include
+
+=over 4
+
+=item mailto
+
+Although it's possible to verify, to a certain degree, many mail
+addresses the only absolute way to check that a mail address reaches
+the person it's meant to reach is to send a mail and ask for them to
+reply.  Obviously, if everybody checking every link in the world
+started to do this some unlucky recipients would get very upset at
+being bombarded with so much mail.  
+
+A low level of verification can be done in some circumstances.  This
+requires that the persons actual mail server (the place where their
+mail is kept) can be contacted directly and is willing to be helpful.
+
+=item news
+
+Checking news urls (not possible at the present moment anyway)
+requires access to a I<correctly set up> news server which has the
+feed for that newsgroup.  Even then, it doesn't talk about the access
+for the end user.
+
+=item http
+
+Some URLs require authorisation of some kind.  Where the link checker
+doesn't have this authorisation, it can't do the checking.
+
+=cut

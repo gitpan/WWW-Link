@@ -1,0 +1,7 @@
+=head1 Okay Links
+
+A link is defined as being okay when the last attempt to contact it
+worked.  If we get some signal (e.g. from a user) that the link is
+suspect, then we just schedule it for checking sooner.  
+
+=cut

@@ -1,0 +1,15 @@
+\bRCS\b
+\bCVS\b
+^MANIFEST\.[Bb]
+^Makefile$
+~$
+\.old$
+\.tar.gz$
+\.mikeonly$
+^blib/
+^MakeMaker-\d
+^pm_to_blib$
+(^|/)#.*#$
+(^|/).#
+^work-infostruc/
+^WWW_Link-[0-9]+.[0-9][0-9][0-9]

@@ -35,7 +35,7 @@ an index to get the information.
 =cut
 
 package WWW::Link::Selector;
-$REVISION=q$Revision: 1.9 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.10 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 use strict;
 use Carp qw(croak carp cluck);
 
@@ -44,6 +44,20 @@ $WWW::Link::Selector::ignore_missing = 0;
 #$WWW::Link::Selector::verbose = 0xFF;
 $WWW::Link::Selector::verbose = 0x00
   unless defined $WWW::Link::Selector::verbose;
+
+
+sub _check_link ($$$) {
+  my ($link,$url,$reporter)=@_;
+  (defined $link) or do {
+    $reporter->not_found( $url ) unless $WWW::Link::Selector::ignore_missing;
+    return 0;
+  };
+  ref $link or do {
+    cluck "Non reference $link found in database for url $url.\n";
+    return 0;
+  };
+  return 1;
+}
 
 =head1 generate_url_func
 
@@ -71,15 +85,8 @@ sub generate_url_func ($$\@) {
       s/\s//g;
       my $url = $_;
       my $link=$link_database->{$url};
-      ref $link or do {
-	cluck "Non reference $link found in database for url $url.\n";
-	next;
-      };
-      if (defined $link) {
-	$reporter->examine( $link );
-      } else {
-	$reporter->not_found( $url ) unless $WWW::Link::Selector::ignore_missing;
-      }
+      next unless _check_link($link,$url,$reporter);
+      $reporter->examine( $link );
     }
   }
 }
@@ -116,15 +123,7 @@ sub generate_select_func ($$$;$) {
 	print STDERR "WWW::Link::Selector::[generated selector] Looking"
 	  . " at link $url.\n"
 	    if $WWW::Link::Selector::verbose & 64;
-	unless ($link) {
-	  $reporter->not_found( $url )
-	    unless $WWW::Link::Selector::ignore_missing;
-	  next URL;
-	}
-	ref $link or do {
-	  cluck "Non reference $link found in database for url $url.\n";
-	  next;
-	};
+	next unless _check_link($link,$url,$reporter);
 	$reporter->examine ( $link ) if &$include_func($url);
       }
 
@@ -142,13 +141,8 @@ sub generate_select_func ($$$;$) {
 
       my ($url,$link);
     LINK: while(($url,$link)=each %$link_database) {
-	ref $link or do {
-	  #FIXME: we really don't want this, but rather want to accept
-	  #some iterator functionwhich returns only links as an argument.
-	  warn "Non reference $link found in database for url $url.\n"
-	    unless $url =~ m/^\%\+\+/;
-	  next;
-	};
+	next if (!ref $url) and $url =~ m/^\%\+\+/;
+	next unless _check_link($link,$url,$reporter);
 	print STDERR "Looking at link $url.\n"
 	  if $WWW::Link::Selector::verbose & 64;
 	$reporter->examine ( $link ) if &$include_func($url);

@@ -22,8 +22,8 @@ into something which can be used by humans.
 =cut
 
 package WWW::Link;
-$REVISION=q$Revision: 1.19 $ ;
-$VERSION = '0.032'; #BETA / under development
+$REVISION=q$Revision: 1.21 $ ;
+$VERSION = '0.033'; #BETA / under development
 use Carp;
 use strict;
 use vars qw($verbose $VERSION);
@@ -125,7 +125,7 @@ tests are likely to vary.
 The link is not considered to have been damaged.  N.B. this could just
 mean that we haven't checked it yet.  Use validated okay to verify that.
 
-=item never_checked
+=item is_not_tested
 
 The link has not been examined and the system doesn't know if it is
 good or bad.

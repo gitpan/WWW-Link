@@ -1,5 +1,5 @@
 package WWW::Link::Test;
-$REVISION=q$Revision: 1.5 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.6 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -34,6 +34,9 @@ and then telling the associated link object what happened.
 =cut
 
 use strict;
+use URI;
+use WWW::Link;
+use HTTP::Request
 
 use vars qw($warn_access);
 
@@ -41,7 +44,7 @@ sub test_link ($@) {
   my $user_agent=shift;
   my $link;
   foreach $link (@_) {
-    my $url=new URI::URL $link->url;
+    my $url=URI->new($link->url);
     my $request=new HTTP::Request ('HEAD',$url);
     print STDERR "sending request\n";
     my $response=$user_agent->simple_request($request);

@@ -1,5 +1,5 @@
 package WWW::Link::Tester;
-$REVISION=q$Revision: 1.13 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
+$REVISION=q$Revision: 1.14 $ ; $VERSION = sprintf ( "%d.%02d", $REVISION =~ /(\d+).(\d+)/ );
 
 =head1 NAME
 
@@ -20,6 +20,7 @@ provides methods that are useful within those classes.
 
 =cut
 
+use URI;
 use Carp;
 use Exporter;
 @ISA=qw(Exporter);
@@ -46,9 +47,7 @@ sub new {
 sub test_link {
   my $self=shift;
   my $link=shift;
-  my $url=new URI::URL $link->url;
-
-  my ($response, @redirects) = $self->get_response($url);
+  my ($response, @redirects) = $self->get_response($link);
   $self->handle_response($link,$response,@redirects);
 }
 
